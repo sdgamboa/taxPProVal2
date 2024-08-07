@@ -19,7 +19,7 @@ removeDups <- function(x) {
     x |>
         dplyr::rowwise() |>
         dplyr::mutate(
-            sorted = paste(sort(c(node1, node2)), collapse = "_")
+            sorted = paste(sort(c(tip1, tip2)), collapse = "_")
         ) |>
         dplyr::ungroup() |>
         dplyr::filter(!duplicated(sorted)) |>
@@ -37,11 +37,11 @@ getClosestTips <- function(tr) {
         minValue <- min(tip_distances)
         tip_distances <- tip_distances[which(tip_distances == minValue)]
         data.frame(
-            node2 = names(tip_distances),
+            tip2 = names(tip_distances),
             distance = unname(tip_distances)
         )
     }) |>
         purrr::set_names(tr$tip.label) |>
-        dplyr::bind_rows(.id = "node1") |>
+        dplyr::bind_rows(.id = "tip1") |>
         removeDups()
 }

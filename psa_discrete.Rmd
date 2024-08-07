@@ -1,0 +1,25 @@
+---
+title: "Phylogenetic signal analysis"
+subtitle: "Discrete attributes/physiologies"
+output: html_document
+date: "2024-08-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, message=FALSE}
+library(bugphyzz)
+library(taxPPro)
+library(dplyr)
+library(castor)
+library(tibble)
+library(readr)
+library(ggplot2)
+library(purrr)
+library(tidyr)
+
+source("fun.R")
+```
+

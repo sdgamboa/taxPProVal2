@@ -1,0 +1,320 @@
+---
+title: "Validation Checks"
+output: html_document
+date: "2024-08-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(taxPPro)
+library(readr)
+library(dplyr)
+library(bugphyzz)
+library(purrr)
+library(tidyr)
+library(ggplot2)
+library(ggrepel)
+library(forcats)
+library(ggtree)
+source("fun.R")
+```
+
+We need:
+1. 10-fold cross-validation results (included in bugphyzz).
+2. Tree metrics (these can be obtained from the taxPPro package).
+3. Annotated taxa from bugphyzz.
+
+Import validation results:
+
+```{r load validation data}
+valFname <- system.file(
+    "extdata", "validation_summary.tsv", package = "bugphyzz", mustWork = TRUE
+)
+selectColsNum <- c(
+    "physiology", "attribute", "r2_mean", "ltp_bp_phys", "ltp_bp_phys_per"
+)
+selectColsBin <- c(
+    "physiology", "attribute", "mcc_mean", "ltp_bp_phys", "ltp_bp_phys_per"
+)
+selectColsMul <- c(
+    "physiology", "attribute", "mcc_mean",  "ltp_bp", "ltp_bp_per",
+    "ltp_bp_phys", "ltp_bp_phys_per"
+)
+attrMul <- c(
+    ## Multistate 
+    "spore shape",
+    "hemolysis",
+    "arrangement",
+    "biosafety level",
+    "cogem pathogenicity rating",
+    "aerophilicity",
+    "gram stain",
+    "shape"
+)
+attrBin <- c(
+    "extreme environment",
+    "host-associated",
+    "animal pathogen",
+    "antimicrobial sensitivity",
+    "motility",
+    # "plant pathogenity",
+    "plant pathogenicity",
+    "spore formation"
+)
+valDat <- valFname |>
+    read_tsv(show_col_types = FALSE) |>
+    filter(rank == "all")
+valDatNum <- valDat |> 
+    filter(method == "castor-ltp") |> 
+    select(all_of(selectColsNum)) |> 
+    select(-physiology) |> 
+    rename(Attribute = attribute)
+valDatBin <- valDat |> 
+    filter(method == "phytools-ltp") |> 
+    filter(physiology %in% attrBin) |> 
+    select(all_of(selectColsBin)) |> 
+    select(-physiology) |> 
+    rename(Attribute = attribute)
+valDatMulI <- valDat |> 
+    filter(method == "phytools-ltp") |> 
+    filter(physiology %in% attrMul) |> 
+    select(all_of(selectColsMul)) |> 
+    rename(Attribute = physiology, Attribute_value = attribute) |> 
+    mutate(Attribute_value = paste0(Attribute, "|", Attribute_value))
+valDatMulG <- valDatMulI |> 
+    group_by(Attribute) |> 
+    mutate(mcc_mean = mean(mcc_mean)) |> 
+    ungroup() |> 
+    select(
+        Attribute = Attribute, mcc_mean, ltp_bp_phys, ltp_bp_phys_per
+    ) |> 
+    distinct()
+```
+
+Let's get phylogenetic data:
+
+```{r load tree data}
+ltp <- ltp()
+tr <- ltp$tree
+tipDat <- ltp$tip_data |> 
+    group_by(taxid) |>
+    mutate(n = n()) |>
+    ungroup() |>
+    filter(n == 1) |> 
+    select(tip_label, taxid)
+droppedTips <- nrow(ltp$tip_data) - nrow(tipDat)
+message(
+    "Only use tips mapped to a single taxid. ",
+    droppedTips, " tips were dropped. ",
+    nrow(tipDat), " tips were kept."
+)
+```
+
+Get pairwise distance between closest neighboring tips:
+
+```{r get pairwise distances}
+distFname <- "close_tips_distance.tsv"
+if (file.exists(distFname)) {
+    closeTips <- readr::read_tsv(distFname, show_col_types = FALSE)
+} else {
+    closeTips <- getClosestTips(tr)
+    readr::write_tsv(x = closeTips, file = distFname, num_threads = 10)
+}
+dim(closeTips)
+```
+
+Import bugphyzz:
+
+```{r import bugphyzz}
+bp <- importBugphyzz(forceDownload = FALSE, v = 0.5) |> 
+    map(~ mutate(.x, NCBI_ID = as.character(NCBI_ID)))
+# bp2 <- map(bp, ~ filter(.x, Evidence != "asr"))
+```
+
+Create input tables:
+
+```{r create tables, message=FALSE}
+bpSub <- bp |>
+    map(~{
+        dups <- unique(.x$NCBI_ID[which(duplicated(.x$NCBI_ID))])
+        .x |> 
+            filter(Evidence != "asr") |> 
+            filter(!NCBI_ID %in% dups) |> 
+            select(NCBI_ID, Attribute, Attribute_value) |> 
+            mutate(NCBI_ID = as.character(NCBI_ID)) |> 
+            left_join(tipDat, by = c("NCBI_ID" = "taxid")) |>
+            select(-NCBI_ID) |> 
+            drop_na() |> 
+            as_tibble()
+        
+    }) 
+tipsL <- map(bpSub, ~ {
+    closeTips |> 
+        left_join(.x, by = c("tip1" = "tip_label")) |> 
+        rename(tip1Attr = Attribute, tip1AttrVal = Attribute_value) |> 
+        left_join(.x, by = c("tip2" = "tip_label")) |> 
+        rename(tip2Attr = Attribute, tip2AttrVal = Attribute_value) |> 
+        drop_na() |> 
+        as_tibble()
+})
+
+tipsNum <- tipsL[valDatNum$Attribute] |> 
+    map(~ {
+        .x |> 
+            rename(Attribute = tip1Attr) |> 
+            select(-tip2Attr) |> 
+            mutate(diff = abs(tip1AttrVal - tip2AttrVal)) |> 
+            left_join(valDatNum, by = "Attribute")
+    }) |> 
+    bind_rows()
+tipsBin <- tipsL[attrBin] |> 
+        map(~ {
+            mutate(.x, TF = ifelse(tip1AttrVal == tip2AttrVal, "TRUE", "FALSE")) |> 
+                rename(Attribute = tip1Attr) |>
+                select(-tip2Attr) |> 
+                left_join(valDatBin, by = "Attribute")
+        }) |> 
+    bind_rows()
+tipsMulG <- tipsL[attrMul] |> 
+        map(~ {
+            mutate(.x, TF = ifelse(tip1AttrVal == tip2AttrVal, "TRUE", "FALSE")) |> 
+                rename(Attribute = tip1Attr) |> 
+                select(-tip2Attr) |> 
+                left_join(valDatMulG, by = "Attribute")
+        }) |> 
+    bind_rows()
+
+tipsMulI <- bpSub[attrMul] |> 
+    imap(~ {
+        annL <- split(.x, .x$Attribute_value) |> 
+            map(\(y) pull(y, tip_label))
+        uniqLabs <- unique(unlist(annL, use.names = FALSE))
+        ctSub <- closeTips |>
+            filter(
+                tip1 %in% uniqLabs & tip2 %in% uniqLabs
+        )
+        names(annL) <- paste0(.y, "|", names(annL))
+        for (i in seq_along(annL)) {
+            annName <- names(annL)[i]
+            colName1 <- paste0(annName, "_tip1")
+            colName2 <- paste0(annName, "_tip2")
+            ctSub[[colName1]] <- ctSub$tip1 %in% annL[[i]]
+            ctSub[[colName2]] <- ctSub$tip2 %in% annL[[i]]
+            ctSub[[annName]] <- paste0(ctSub[[colName1]], "|", ctSub[[colName2]])
+        }
+        return(ctSub)
+    })
+tipsMulI <- map(tipsMulI,  ~ {
+    .x |>
+        select(-matches("_tip\\d$")) |>
+        pivot_longer(
+            names_to = "Attribute", values_to = "logical",
+            cols = 4:last_col()
+        ) |>
+        filter(logical != "FALSE|FALSE") |>
+        arrange(Attribute, logical, distance) |>
+        mutate(
+            Attribute = forcats::fct_inorder(Attribute)
+        ) |>
+        mutate(
+            grp = sub("\\|.*$", "", Attribute)
+        ) |>
+        mutate(
+            logical = ifelse(grepl("FALSE", logical), "FALSE", "TRUE")
+        ) |> 
+        rename(
+            Attribute = grp, Attribute_value = Attribute,
+            TF = logical
+        )
+}) |>
+    bind_rows() |> 
+    left_join(valDatMulI, by = c("Attribute", "Attribute_value"))
+```
+
+## EDA Numeric values
+
+```{r}
+tipsNum |> 
+    group_by(Attribute) |> 
+    mutate(
+        mean_dist = mean(distance),
+        mean_diff = mean(diff)
+    ) |> 
+    ungroup() |> 
+    select(
+        Attribute, r2_mean, ltp_bp_phys, ltp_bp_phys_per, mean_dist, mean_diff
+    ) |> 
+    distinct() |>
+    ggplot(aes(ltp_bp_phys_per, r2_mean)) +
+    geom_point(aes(color = mean_dist)) +
+    geom_text_repel(aes(label = Attribute)) +
+    scale_x_continuous(labels = scales::comma) +
+    scale_color_continuous(name = "Mean pairwise\ndistance") +
+    labs(
+        y = "Mean R2", x = "Annotated tips (%)"
+    ) +
+    theme_bw()
+```
+
+```{r}
+tipsNum |> 
+    mutate(Attribute = paste0(Attribute, " (", r2_mean, ")")) |> 
+    arrange(r2_mean) |> 
+    mutate(Attribute = fct_inorder(Attribute)) |> 
+    ggplot(aes(Attribute, distance)) +
+    geom_boxplot(aes(fill = ltp_bp_phys_per)) +
+    scale_fill_viridis_c(name = "Annotated\ntips (%)", option = "C") +
+    labs(
+        y = "Pairwise distance"
+    ) +
+    theme_bw() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+```
+```{r, fig.width=9}
+tipsNum |> 
+    ggplot(aes(distance, diff)) +
+    geom_point(size = 0.2) +
+    facet_wrap(~ Attribute, scales = "free") +
+    geom_smooth(method = "glm") +
+    scale_y_continuous(labels = scales::comma) +
+    labs(
+        x = "Pairwise distance" , y = "Value difference"
+    ) +
+    theme_bw()
+```
+
+
+
+```{r}
+tip_data <- ltp$tip_data
+gt <- bp$`growth temperature` |> 
+    select(NCBI_ID, Attribute_value, Evidence)
+gtTD <- left_join(tip_data, gt, by = c("taxid" = "NCBI_ID")) 
+gtTD2 <- gtTD |> 
+    filter(!is.na(order_taxid)) |> 
+    filter(!is.na(Evidence)) |> 
+    group_by(order_taxid, Evidence) |>
+    count() |> 
+    group_by(order_taxid) |> 
+    mutate(total = sum(n)) |> 
+    ungroup() 
+```
+
+```{r}
+ord <- gtTD |> 
+    filter(order_taxid == "112")
+phylotools::kee
+```
+
+
+
+
+
+
+
+

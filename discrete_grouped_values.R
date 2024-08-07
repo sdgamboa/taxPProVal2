@@ -15,7 +15,24 @@ source("fun.R")
 valFname <- system.file(
     "extdata", "validation_summary.tsv", package = "bugphyzz", mustWork = TRUE
 )
-valData <- read_tsv(valFname, show_col_types = FALSE)
+
+selectCols <- c(
+    "physiology", "attribute", "mcc_mean",
+    "ltp_bp_phys"
+)
+
+
+valData <- valFname |>
+    read_tsv(show_col_types = FALSE) |>
+    filter(rank == "all") |>
+    filter(method == "phytools-ltp") |>
+    select(all_of(selectCols)) |>
+    group_by(physiology) |>
+    mutate(mcc_mean = mean(mcc_mean)) |>
+    ungroup() |>
+    select(-attribute) |>
+    distinct()
+    # select(where(~ !all(is.na(.x))))
 
 ltp <- ltp()
 tr <- ltp$tree
@@ -25,8 +42,7 @@ tipData <- ltp$tip_data |>
     group_by(taxid) |>
     mutate(n = n()) |>
     ungroup() |>
-    filter(n == 1) |>
-    select(-n)
+    filter(n == 1)
 
 ## Get pairwise distances between closest tips only
 fname <- "close_tips_distance.tsv"
@@ -40,8 +56,7 @@ if (file.exists(fname)) {
 bp <- importBugphyzz()
 
 ## Discrete attributes with ASR annotations
-
-attrMulti <- c(
+attrMult <- c(
     ## Multistate
     "spore shape",
     "hemolysis",
@@ -52,7 +67,6 @@ attrMulti <- c(
     "gram stain",
     "shape"
 )
-
 attrBin <- c(
     "extreme environment",
     "host-associated",
@@ -60,18 +74,15 @@ attrBin <- c(
     "antimicrobial sensitivity",
     "motility",
     "plant pathogenity",
+    "plant pathogenicity",
     "spore formation"
 )
-
-attrNames <- c(attrMulti, attrBin)
+attrNames <- c(attrMult, attrBin)
 
 physDatL <- bp[attrNames] |>
     map(~ {
         .x |>
             removeASR() |>
-            # mutate(
-            #     Attribute_value = paste0(Attribute, "|", Attribute_value)
-            # ) |>
             select(NCBI_ID, Attribute_value) |>
             as_tibble() |>
             group_by(NCBI_ID) |>
@@ -79,10 +90,9 @@ physDatL <- bp[attrNames] |>
                 n = n()
             ) |>
             ungroup() |>
-            filter(n == 1) |>
+            filter(n == 1) |> # unique annotations per taxa only
             select(-n)
     })
-
 
 tipDatL <- physDatL |>
     map(~ {
@@ -94,11 +104,55 @@ tipDatL <- physDatL |>
             filter(!is.na(Attribute_value))
     })
 
-annotationsL <- tipDatL |>
-    map(~ {
-        split(.x, .x$Attribute_value)
+## Small test to make sure no taxid is repeated per attribute/physiology
+tipDatL |>
+    map_lgl(~ {
+        any(duplicated(pull(.x, taxid)))
     }) |>
-    map(.f = \(y) map(y, ~ pull(.x, tip_label)))
+    sum()
+
+
+logicalTbl <- tipDatL |>
+    imap(~ {
+        tipLabs <- pull(.x, tip_label)
+        ctSub <- closeTips |>
+            filter(node1 %in% tipLabs & node2 %in% tipLabs)
+        ctSub |>
+            left_join(
+                y = select(.x, tip_label, Attribute_value),
+                by = c("node1" = "tip_label")
+            ) |>
+            rename(attrNode1 = Attribute_value) |>
+            left_join(
+                y = select(.x, tip_label, Attribute_value),
+                by = c("node2" = "tip_label")
+            ) |>
+            rename(attrNode2 = Attribute_value) |>
+            mutate_at(
+                .vars = c("attrNode1", "attrNode2"), .funs = as.character
+            ) |>
+            mutate(
+                logical = case_when(
+                    attrNode1 == attrNode2 ~ TRUE,
+                    TRUE ~ FALSE
+                )
+            )
+    }) |>
+    bind_rows(.id = "grp")
+
+logicalTbl |>
+    count(grp, logical) |>
+    pivot_wider(
+        names_from = "logical", values_from = "n",
+    ) |>
+    relocate(`TRUE`, `FALSE`, .after = grp) |>
+    mutate_at(
+        .vars = c("TRUE", "FALSE"),
+        .funs = \(y) ifelse(is.na(y), 1, y)
+    ) |>
+    mutate(
+        ratio = `TRUE` / `FALSE`
+    )
 
 logicalTbl <- imap(annotationsL, ~ {
     uniqLabs <- unique(unlist(.x, use.names = FALSE))
@@ -120,6 +174,47 @@ logicalTbl <- imap(annotationsL, ~ {
     }
     return(ctSub)
 })
+
+
+
+
+ratioTbl <- logicalTbl |>
+    count(grp, logical) |>
+    pivot_wider(
+        names_from = "logical", values_from = "n"
+    ) |>
+    relocate(`TRUE`, `FALSE`, .after = grp) |>
+    mutate_at(
+        .vars = c("TRUE", "FALSE"),
+        .funs = \(y) ifelse(is.na(y), 1, y)
+    ) |>
+    mutate(
+        ratio = `TRUE` / `FALSE`
+    )
+
+logicalTbl |>
+    ggplot(aes(grp, distance)) +
+    geom_boxplot(aes(color = logical)) +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+
+logicalTbl |>
+    group_by(grp, logical) |>
+    summarise(
+        mean = mean(distance)
+    )
+
+logicalTbl |>
+    group_by(grp) |>
+    summarise(
+        mean = mean(distance)
+    )
+
+
+
+
+
 
 
 x <- map(logicalTbl, ~ {

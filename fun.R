@@ -16,6 +16,9 @@ addAttributes <- function(attrDat, tipDat) {
 }
 
 removeDups <- function(x) {
+    ## This function removes symmetric duplicates.
+    ## Maybe is better not to do this since the pairwise distances are not
+    ## really symmetrical.
     x |>
         dplyr::rowwise() |>
         dplyr::mutate(
@@ -41,7 +44,7 @@ getClosestTips <- function(tr) {
             distance = unname(tip_distances)
         )
     }) |>
-        purrr::set_names(tr$tip.label) |>
-        dplyr::bind_rows(.id = "tip1") |>
-        removeDups()
+        purrr::set_names(tr$tip.label)
+        # dplyr::bind_rows(.id = "tip1")
+        # removeDups()
 }

@@ -1,5 +1,5 @@
 ---
-title: "Validation Checks"
+title: "Validation Checks - Exploratory plots"
 output: html_document
 date: "2024-08-05"
 ---
@@ -18,14 +18,10 @@ library(tidyr)
 library(ggplot2)
 library(ggrepel)
 library(forcats)
+library(ape)
 library(ggtree)
 source("fun.R")
 ```
-
-We need:
-1. 10-fold cross-validation results (included in bugphyzz).
-2. Tree metrics (these can be obtained from the taxPPro package).
-3. Annotated taxa from bugphyzz.
 
 Import validation results:
 
@@ -44,7 +40,6 @@ selectColsMul <- c(
     "ltp_bp_phys", "ltp_bp_phys_per"
 )
 attrMul <- c(
-    ## Multistate 
     "spore shape",
     "hemolysis",
     "arrangement",
@@ -60,13 +55,13 @@ attrBin <- c(
     "animal pathogen",
     "antimicrobial sensitivity",
     "motility",
-    # "plant pathogenity",
     "plant pathogenicity",
     "spore formation"
 )
 valDat <- valFname |>
     read_tsv(show_col_types = FALSE) |>
-    filter(rank == "all")
+    filter(rank == "all") |> 
+    mutate(physiology = tolower(physiology)) # COGEM most be lower case
 valDatNum <- valDat |> 
     filter(method == "castor-ltp") |> 
     select(all_of(selectColsNum)) |> 
@@ -94,19 +89,21 @@ valDatMulG <- valDatMulI |>
     distinct()
 ```
 
-Let's get phylogenetic data:
+Load phylogenetic data:
 
 ```{r load tree data}
 ltp <- ltp()
 tr <- ltp$tree
 tipDat <- ltp$tip_data |> 
-    group_by(taxid) |>
-    mutate(n = n()) |>
-    ungroup() |>
-    filter(n == 1) |> 
+    # group_by(taxid) |>
+    # mutate(n = n()) |>
+    # ungroup() |>
+    # filter(n == 1) |> 
     select(tip_label, taxid)
 droppedTips <- nrow(ltp$tip_data) - nrow(tipDat)
 message(
+    ## This message is only relevant is the same taxid is assigned to two or
+    ## more tips.
     "Only use tips mapped to a single taxid. ",
     droppedTips, " tips were dropped. ",
     nrow(tipDat), " tips were kept."
@@ -118,20 +115,36 @@ Get pairwise distance between closest neighboring tips:
 ```{r get pairwise distances}
 distFname <- "close_tips_distance.tsv"
 if (file.exists(distFname)) {
-    closeTips <- readr::read_tsv(distFname, show_col_types = FALSE)
+    closeTips <- readr::read_tsv(distFname, show_col_types = FALSE) |> 
+        mutate_at(.vars = c("taxid1", "taxid2"), .funs = as.character)
 } else {
     closeTips <- getClosestTips(tr)
+    closeTips <- bind_rows(closeTips, .id = "tip1")
+    closeTips <- closeTips |> 
+        left_join(
+            tipDat, by = c("tip1" = "tip_label"), relationship = "many-to-many"
+        ) |> 
+        rename(taxid1 = taxid) |> 
+        left_join(
+            tipDat, by = c("tip2" = "tip_label"), relationship = "many-to-many"
+        ) |> 
+        rename(taxid2 = taxid) |> 
+        relocate(distance, .after = last_col()) |> 
+        mutate_at(.vars = c("taxid1", "taxid2"), .funs = as.character)
     readr::write_tsv(x = closeTips, file = distFname, num_threads = 10)
 }
+## The number of rows can be higher than the number of tips in the tree.
+## I'm allowing cases in which A tip can have the same minimum distance
+## to another tip.
+## I'm also allowing repetitions (taking A to B and B to A, for example)
 dim(closeTips)
 ```
 
 Import bugphyzz:
 
 ```{r import bugphyzz}
-bp <- importBugphyzz(forceDownload = FALSE, v = 0.5) |> 
+bp <- importBugphyzz(forceDownload = FALSE, v = 0) |> 
     map(~ mutate(.x, NCBI_ID = as.character(NCBI_ID)))
-# bp2 <- map(bp, ~ filter(.x, Evidence != "asr"))
 ```
 
 Create input tables:
@@ -139,28 +152,32 @@ Create input tables:
 ```{r create tables, message=FALSE}
 bpSub <- bp |>
     map(~{
-        dups <- unique(.x$NCBI_ID[which(duplicated(.x$NCBI_ID))])
+        # dups <- unique(.x$NCBI_ID[which(duplicated(.x$NCBI_ID))])
         .x |> 
-            filter(Evidence != "asr") |> 
-            filter(!NCBI_ID %in% dups) |> 
+            filter(Evidence != "asr") |> # Remove ASR
+            # filter(!NCBI_ID %in% dups) |> 
             select(NCBI_ID, Attribute, Attribute_value) |> 
             mutate(NCBI_ID = as.character(NCBI_ID)) |> 
-            left_join(tipDat, by = c("NCBI_ID" = "taxid")) |>
-            select(-NCBI_ID) |> 
-            drop_na() |> 
-            as_tibble()
+            # left_join(tipDat, by = c("NCBI_ID" = "taxid")) |>
+            # select(-NCBI_ID) |> 
+            drop_na() |>
+            as_tibble() |> 
+            rename(taxid = NCBI_ID)
         
     }) 
 tipsL <- map(bpSub, ~ {
     closeTips |> 
-        left_join(.x, by = c("tip1" = "tip_label")) |> 
+        left_join(
+            .x, by = c("taxid1" = "taxid"), relationship = "many-to-many"
+        ) |> 
         rename(tip1Attr = Attribute, tip1AttrVal = Attribute_value) |> 
-        left_join(.x, by = c("tip2" = "tip_label")) |> 
+        left_join(
+            .x, by = c("taxid2" = "taxid"), relationship = "many-to-many"
+        ) |> 
         rename(tip2Attr = Attribute, tip2AttrVal = Attribute_value) |> 
         drop_na() |> 
         as_tibble()
 })
-
 tipsNum <- tipsL[valDatNum$Attribute] |> 
     map(~ {
         .x |> 
@@ -190,30 +207,31 @@ tipsMulG <- tipsL[attrMul] |>
 tipsMulI <- bpSub[attrMul] |> 
     imap(~ {
         annL <- split(.x, .x$Attribute_value) |> 
-            map(\(y) pull(y, tip_label))
+            map(\(y) pull(y, taxid))
         uniqLabs <- unique(unlist(annL, use.names = FALSE))
         ctSub <- closeTips |>
             filter(
-                tip1 %in% uniqLabs & tip2 %in% uniqLabs
+                ## This ensures that only annotated tips are considered.
+                taxid1 %in% uniqLabs & taxid2 %in% uniqLabs
         )
         names(annL) <- paste0(.y, "|", names(annL))
         for (i in seq_along(annL)) {
             annName <- names(annL)[i]
             colName1 <- paste0(annName, "_tip1")
             colName2 <- paste0(annName, "_tip2")
-            ctSub[[colName1]] <- ctSub$tip1 %in% annL[[i]]
-            ctSub[[colName2]] <- ctSub$tip2 %in% annL[[i]]
+            ctSub[[colName1]] <- ctSub$taxid1 %in% annL[[i]]
+            ctSub[[colName2]] <- ctSub$taxid2 %in% annL[[i]]
             ctSub[[annName]] <- paste0(ctSub[[colName1]], "|", ctSub[[colName2]])
         }
         return(ctSub)
     })
 tipsMulI <- map(tipsMulI,  ~ {
     .x |>
-        select(-matches("_tip\\d$")) |>
+        select(-matches("_tip\\d$")) |> 
         pivot_longer(
             names_to = "Attribute", values_to = "logical",
-            cols = 4:last_col()
-        ) |>
+            cols = 6:last_col()
+        ) |> 
         filter(logical != "FALSE|FALSE") |>
         arrange(Attribute, logical, distance) |>
         mutate(
@@ -229,14 +247,14 @@ tipsMulI <- map(tipsMulI,  ~ {
             Attribute = grp, Attribute_value = Attribute,
             TF = logical
         )
-}) |>
+}) |> 
     bind_rows() |> 
     left_join(valDatMulI, by = c("Attribute", "Attribute_value"))
 ```
 
 ## EDA Numeric values
 
-```{r}
+```{r numPlot Ntips vs Mean R2}
 tipsNum |> 
     group_by(Attribute) |> 
     mutate(
@@ -259,7 +277,7 @@ tipsNum |>
     theme_bw()
 ```
 
-```{r}
+```{r numPlot dist boxplot}
 tipsNum |> 
     mutate(Attribute = paste0(Attribute, " (", r2_mean, ")")) |> 
     arrange(r2_mean) |> 
@@ -275,12 +293,13 @@ tipsNum |>
         axis.text.x = element_text(angle = 45, hjust = 1)
     )
 ```
-```{r, fig.width=9}
+```{r numPlot diff vs dist, fig.width=9}
 tipsNum |> 
+    mutate(Attribute = paste0(Attribute, " (", r2_mean, ")")) |> 
     ggplot(aes(distance, diff)) +
     geom_point(size = 0.2) +
     facet_wrap(~ Attribute, scales = "free") +
-    geom_smooth(method = "glm") +
+    geom_smooth(method = "glm", formula = y ~ x) +
     scale_y_continuous(labels = scales::comma) +
     labs(
         x = "Pairwise distance" , y = "Value difference"
@@ -288,33 +307,137 @@ tipsNum |>
     theme_bw()
 ```
 
-
+## EDA discrete values (Multisate - Global)
 
 ```{r}
-tip_data <- ltp$tip_data
-gt <- bp$`growth temperature` |> 
-    select(NCBI_ID, Attribute_value, Evidence)
-gtTD <- left_join(tip_data, gt, by = c("taxid" = "NCBI_ID")) 
-gtTD2 <- gtTD |> 
-    filter(!is.na(order_taxid)) |> 
-    filter(!is.na(Evidence)) |> 
-    group_by(order_taxid, Evidence) |>
-    count() |> 
-    group_by(order_taxid) |> 
-    mutate(total = sum(n)) |> 
-    ungroup() 
+sumMulG <- tipsMulG |> 
+    group_by(Attribute, TF) |> 
+    summarise(
+        meanDist = mean(distance),
+        medianDist = median(distance),
+        nTF = length(TF),
+        val = unique(mcc_mean),
+        nTips = unique(ltp_bp_phys),
+        perTips = unique(ltp_bp_phys_per)
+    ) |> 
+    ungroup() |> 
+    pivot_wider(
+        names_from = "TF", values_from = c("nTF", "meanDist", "medianDist")
+    ) |> 
+    mutate(TFrat = nTF_TRUE / nTF_FALSE) |> 
+    mutate(TFratDist = meanDist_TRUE / meanDist_FALSE) |> 
+    mutate(TFratDistMed = medianDist_TRUE / medianDist_FALSE)
 ```
 
 ```{r}
-ord <- gtTD |> 
-    filter(order_taxid == "112")
-phylotools::kee
+sumMulGp1 <- sumMulG |> 
+    ggplot(aes(perTips, val)) +
+    geom_smooth(method = "lm", formula = y ~ x) +
+    geom_point(
+        # aes(size = TFrat, color = TFratDistMed)
+        aes(size = TFrat, color = medianDist_TRUE)
+    ) +
+    geom_text_repel(aes(label = Attribute)) +
+    scale_x_continuous(labels = scales::comma) +
+    scale_color_viridis_c(
+        name = "Median distance\nof concordant annotations", option = "C"
+    ) +
+    scale_size_continuous(name = "T/F ratio") +
+    labs(
+        x = "Annotated tips (%)",
+        y = "Global mean MCC"
+    ) +
+    theme_bw()
+sumMulGp1
+```
+
+## EDA discrete values (Multisate - individual)
+
+```{r}
+x <- tipsMulI |> 
+    group_by(Attribute, Attribute_value, TF) |> 
+    summarise(
+        meanDist = mean(distance),
+        medianDist = median(distance),
+        nTF = length(TF),
+        val = unique(mcc_mean),
+        nTips = unique(ltp_bp),
+        perTips = unique(ltp_bp)
+    ) |> 
+    ungroup() |> 
+    drop_na() |> 
+    pivot_wider(
+        names_from = "TF", values_from = c("nTF", "meanDist", "medianDist")
+    ) |> 
+    mutate(TFrat = nTF_TRUE / nTF_FALSE) |> 
+    mutate(TFratDist = meanDist_TRUE / meanDist_FALSE) |> 
+    mutate(TFratDistMed = medianDist_TRUE / medianDist_FALSE)
+```
+
+
+```{r}
+x |> 
+    ggplot(aes(nTips, val)) +
+     geom_smooth(method = "lm", formula = y ~ x) +
+    geom_point(
+        # aes(size = TFrat, color = medianDist_TRUE)
+    ) +
+    geom_text_repel(
+        aes(label = Attribute_value), size = 2.5
+    ) +
+    labs(
+        x = "Number of annotated tips",
+        y = "Mean Mathews Correlation Coefficient"
+    ) +
+    scale_color_viridis_c(
+        name = "Median distance\nof concordant annotations", option = "C"
+    ) + 
+    theme_bw()
+    # facet_wrap(~ Attribute)
+```
+
+## EDA - Binary
+
+```{r}
+x <- tipsBin |> 
+    group_by(Attribute, TF) |> 
+    summarise(
+        meanDist = mean(distance),
+        medianDist = median(distance),
+        nTF = length(TF),
+        val = unique(mcc_mean),
+        nTips = unique(ltp_bp_phys),
+        perTips = unique(ltp_bp_phys)
+    ) |> 
+    ungroup() |> 
+    pivot_wider(
+        names_from = "TF", values_from = c("nTF", "meanDist", "medianDist")
+    ) |> 
+    mutate(TFrat = nTF_TRUE / nTF_FALSE) |> 
+    mutate(TFratDist = meanDist_TRUE / meanDist_FALSE) |>
+    mutate(TFratDistMed = medianDist_TRUE / medianDist_FALSE)
 ```
 
 
 
+```{r}
+x |> 
+    bind_rows(sumMulG) |> 
+    ggplot(aes(nTips, val)) +
+    geom_smooth(method = "lm", formula = y ~ x) +
+    geom_point(
+        aes(size = TFrat, color = TFratDistMed)
+    ) +
+    scale_color_viridis_c(option = "C") +
+    geom_text_repel(aes(label = Attribute)) +
+    theme_bw()
+```
+
+## Session information
 
 
-
+```{r}
+sessioninfo::session_info()
+```
 
 

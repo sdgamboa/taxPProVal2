@@ -8,12 +8,15 @@ bp <- importBugphyzz(v = 0)
 bpModified <- bp |>
     map(~{
         .x |>
+            mutate(NCBI_ID = as.character(NCBI_ID)) |>
             select(
                 taxid = NCBI_ID, Attribute, Attribute_value, Evidence,
                 Score, Validation
             ) |>
             as_tibble()
-    })
+    }) |>
+    keep(~ sum(.x$Evidence == "asr") > 0)
+
 
 ltp <- ltp()
 tr <- ltp$tree
@@ -61,8 +64,10 @@ countsPerRank <- function(x) {
         discard(~ nrow(.x) == 0)
 }
 
-y <- map(tipDataAnnotated, countsPerRank) |>
+tipDataCountPerRank <- map(tipDataAnnotated, countsPerRank) |>
     discard(~ !length(.x))
+
+
 map(y, names)
 
 

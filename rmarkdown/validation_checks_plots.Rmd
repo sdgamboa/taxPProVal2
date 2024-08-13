@@ -20,7 +20,7 @@ library(ggrepel)
 library(forcats)
 library(ape)
 library(ggtree)
-source("fun.R")
+source("scripts/fun.R")
 ```
 
 Import validation results:
@@ -113,7 +113,7 @@ message(
 Get pairwise distance between closest neighboring tips:
 
 ```{r get pairwise distances}
-distFname <- "close_tips_distance.tsv"
+distFname <- "files/close_tips_distance.tsv"
 if (file.exists(distFname)) {
     closeTips <- readr::read_tsv(distFname, show_col_types = FALSE) |> 
         mutate_at(.vars = c("taxid1", "taxid2"), .funs = as.character)

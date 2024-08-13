@@ -71,11 +71,12 @@ tipDataCountPerRank <- map(tipDataAnnotated, countsPerRank) |>
     discard(~ !length(.x))
 
 ## Order
-order <- list_flatten(map(tipDataCountPerRank, ~ .x$order))
+order <- list_flatten(map(tipDataCountPerRank, ~ .x$order)) |>
+    discard(~ !length(.x))
 orderIDL <- map(order, ~ unique(.x$order_taxid))
 
 getSubTr <- function(id) {
-    ## Function to get subtree based on internal node taxid
+    ## Function to get a subtree based on an internal node taxid.
     idRx <- paste0("\\b", id, "\\b")
     targetClade <- grep(idRx, tr$node.label, value = TRUE)
     subTr <- extract.clade(tr, targetClade)
@@ -88,15 +89,16 @@ numberTips <- map(orderIDL, \(x) {
     return(ntips)
 })
 
-lgList <- map(numberTips, ~ .x <= 100)
+## A 100 tips should be easy to view.
+## Work on number of tips of the subtree, not the number of rows
+lgL <- map(numberTips, ~ .x <= 100)
 
-selectIDs <- map2(orderIdsL, lgList, ~ {
+selectIDs <- map2(orderIDL, lgL, ~ {
     .x[.y]
 }) |>
     discard(~ !length(.x))
 
-
-## You should get a subtree (clade) per taxid
+## Get a subtree for each taxid
 subTrees <- map(selectIDs, \(x) {
     l <- map(x,\(y) getSubTr(y))
     names(l) <- x
@@ -156,41 +158,41 @@ ggsave(
 )
 
 ## optimal ph
-opPlot <- plotCladeNum("optimal ph")
+opPlot <- plotCladeNum("optimal ph", cladeName = "Halobacteriales")
 opPlot <- facet_widths(opPlot, widths = c(4, 1))
 ggsave(
-    filename = "optimal_ph.png",
+    filename = "optimal_ph_Halobacteriales.png",
     plot = opPlot, width = 20, height = 15
 )
 
 ## coding genes
-cgPlot <- plotCladeNum("coding genes")
+cgPlot <- plotCladeNum("coding genes", cladeName = "Entomoplasmatales")
 cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
 ggsave(
-    filename = "codinge_genes.png",
+    filename = "codinge_genes_Entoplasmatales.png",
     plot = cgPlot, width = 20, height = 15
 )
 
 ## genome size
-gzPlot <- plotCladeNum("genome size")
+gzPlot <- plotCladeNum("genome size", cladeName = "Rickettsiales")
 gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
 ggsave(
-    filename = "genome_size.png",
+    filename = "genome_size_Rickettsiales.png",
     plot = gzPlot, width = 20, height = 15
 )
 
 ## width
-wPlot <- plotCladeNum("width")
+wPlot <- plotCladeNum("width", cladeName = "Desulfobacterales")
 wPlot <- facet_widths(wPlot, widths = c(4, 1))
 ggsave(
-    filename = "width.png",
+    filename = "width_Desulfobacterales.png",
     plot = wPlot, width = 20, height = 15
 )
 
 ## length
-lPlot <- plotCladeNum("length")
+lPlot <- plotCladeNum("length", cladeName = "Desulfobacterales")
 lPlot <- facet_widths(lPlot, widths = c(4, 1))
 ggsave(
-    filename = "length.png",
+    filename = "length_Desulfobacterales.png",
     plot = lPlot, width = 20, height = 15
 )

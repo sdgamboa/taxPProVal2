@@ -239,7 +239,7 @@ apPlot <- plotCladeDis("animal pathogen")
 apPlot <- facet_widths(apPlot, widths = c(4, 1))
 ggsave(
     filename = "discrete_clade_plots/animal_pathogen.png",
-    plot = gtPlot, width = 20, height = 15
+    plot = apPlot, width = 20, height = 15
 )
 
 ## Host-associated

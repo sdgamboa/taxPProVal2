@@ -8,16 +8,8 @@ library(ggplot2)
 library(ggtree)
 library(ggtreeExtra)
 
+## Bugphyzz data
 bp <- importBugphyzz(v = 0, excludeRarely = FALSE)
-
-
-df <- bp$aerophilicity
-x <- df |>
-    filter(Evidence == "asr")
-
-df |>
-    filter(Attribute_value == "aerotolerant")
-
 bpModified <- bp |>
     map(~{
         .x |>
@@ -30,6 +22,7 @@ bpModified <- bp |>
     }) |>
     keep(~ sum(.x$Evidence == "asr") > 0)
 
+## Tree data
 ltp <- ltp()
 tr <- ltp$tree
 tipData <- ltp$tip_data |>
@@ -38,8 +31,7 @@ tipData <- ltp$tip_data |>
 nodeData <- ltp$node_data |>
     as_tibble()
 
-dat <- bpModified$aerophilicity
-
+## Annotate tips
 tipDataAnnotated <- bpModified |>
     map(~{
         left_join(
@@ -51,6 +43,7 @@ taxRanks <- c("class", "order", "family")
 taxRanks <- paste0(taxRanks, "_taxid")
 
 countsPerRank <- function(x) {
+    ## Function for generating counts per clade.
     output <- map(taxRanks, ~ {
         cols <- c("taxid", .x, "Evidence")
         df <- x[, cols, drop = FALSE]
@@ -77,17 +70,19 @@ countsPerRank <- function(x) {
 tipDataCountPerRank <- map(tipDataAnnotated, countsPerRank) |>
     discard(~ !length(.x))
 
-orders <- list_flatten(map(tipDataCountPerRank, ~ .x$order))
-orderIdsL <- map(orders, ~ unique(.x$order_taxid))
+## Order
+order <- list_flatten(map(tipDataCountPerRank, ~ .x$order))
+orderIDL <- map(order, ~ unique(.x$order_taxid))
 
 getSubTr <- function(id) {
+    ## Function to get subtree based on internal node taxid
     idRx <- paste0("\\b", id, "\\b")
     targetClade <- grep(idRx, tr$node.label, value = TRUE)
     subTr <- extract.clade(tr, targetClade)
     return(subTr)
 }
 
-numberTips <- map(orderIdsL, \(x) {
+numberTips <- map(orderIDL, \(x) {
     ntips <- map_int(x, \(y) Ntip(getSubTr(y)))
     names(ntips) <- x
     return(ntips)
@@ -100,43 +95,102 @@ selectIDs <- map2(orderIdsL, lgList, ~ {
 }) |>
     discard(~ !length(.x))
 
+
+## You should get a subtree (clade) per taxid
 subTrees <- map(selectIDs, \(x) {
-    subTree <- getSubTr(x[[1]])
-    output <- list(subTree)
-    names(output) <- x[[1]]
-    output
+    l <- map(x,\(y) getSubTr(y))
+    names(l) <- x
+    l
 })
 
 
+## There are five numeric attributes that we should check in detail
+## 1. Coding genes.
+## 2. Genome size.
+## 3. Growth temperature.
+## 4. Width.
+## 5. Length.
 
-## growth temperature -----------------------------------------------------
-attr_name <- "coding genes"
-t <- subTrees[[attr_name]][[1]]
-taxid <- names(subTrees[[attr_name]])
-tbl <- tipDataAnnotated[[attr_name]]
-data <- filter(tbl, .data$order_taxid == .env$taxid) |>
-    rename(id = tip_label)
-myData <- data
-subData <- select(myData, id, attr = Attribute_value)
-p <- ggtree(t) %<+% myData +
-    geom_tippoint(mapping = aes(color = Evidence)) +
-    geom_tiplab(mapping = aes(label = Taxon_name), align = TRUE)
-p2 <- ggtree::facet_plot(
-    p = p,
-    mapping = aes(x = attr, fill=Evidence),
-    data = subData, geom = geom_bar, panel = attr_name,
-    stat = "identity",
-    orientation = 'y', width = 0.9
-) +
-    xlim_tree(0.2) +
-    ggtitle("Order X") +
-    theme_tree2()
-p3 <- facet_widths(p2, widths = c(4, 1))
+## Let's generate a few subtrees (clades) to explore the results
+## The subtrees shoould correspond to clades based on the taxonomic
+## classification; however, since phylogeny and taxonomy not always correspond
+## to each other, some discrepancies are expected. Still, the visualization
+## of these trees should be helpful.
+plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
+    clade <- subTrees[[attrName]][[treeIndex]]
+    taxid <- names(subTrees[[attrName]])[[treeIndex]]
+    ann <- tipDataAnnotated[[attrName]] |>
+        filter(.data[["order_taxid"]] == .env[["taxid"]]) |>
+        rename(id = tip_label)
+    annSubset <- select(ann, id, attr = Attribute_value)
+    annSubset # for the bar plots, a different dataset is needed
+    p <- ggtree(clade) %<+% ann +
+        geom_tippoint(mapping = aes(color = Evidence)) +
+        geom_tiplab(mapping = aes(label = taxid), align = TRUE)
+    p2 <- ggtree::facet_plot(
+        p = p,
+        mapping = aes(x = attr, fill=Evidence),
+        data = annSubset, geom = geom_bar, panel = attrName,
+        stat = "identity",
+        orientation = 'y', width = 0.9
+    ) +
+        xlim_tree(0.2) +
+        theme_tree2()
+    if (is.null(cladeName)) {
+        p2 <- p2 +
+            ggtitle(paste0(attrName, " - ", taxid))
+    } else {
+        p2 <- p2 +
+            ggtitle(paste0(attrName, " - ", cladeName))
 
-tail(t$tip.label)
+    }
 
+}
 
-tbl |>
-    filter(tip_label == "g__60892")
-taxid
+## Growth temperature
+gtPlot <- plotCladeNum("growth temperature", cladeName = "Deinococcales")
+gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
+ggsave(
+    filename = "growth_temperature_Deinococcales_118964.png",
+    plot = gtPlot, width = 20, height = 15
+)
 
+## optimal ph
+opPlot <- plotCladeNum("optimal ph")
+opPlot <- facet_widths(opPlot, widths = c(4, 1))
+ggsave(
+    filename = "optimal_ph.png",
+    plot = opPlot, width = 20, height = 15
+)
+
+## coding genes
+cgPlot <- plotCladeNum("coding genes")
+cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
+ggsave(
+    filename = "codinge_genes.png",
+    plot = cgPlot, width = 20, height = 15
+)
+
+## genome size
+gzPlot <- plotCladeNum("genome size")
+gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
+ggsave(
+    filename = "genome_size.png",
+    plot = gzPlot, width = 20, height = 15
+)
+
+## width
+wPlot <- plotCladeNum("width")
+wPlot <- facet_widths(wPlot, widths = c(4, 1))
+ggsave(
+    filename = "width.png",
+    plot = wPlot, width = 20, height = 15
+)
+
+## length
+lPlot <- plotCladeNum("length")
+lPlot <- facet_widths(lPlot, widths = c(4, 1))
+ggsave(
+    filename = "length.png",
+    plot = lPlot, width = 20, height = 15
+)

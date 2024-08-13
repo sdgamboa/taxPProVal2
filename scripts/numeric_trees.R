@@ -153,7 +153,7 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
 gtPlot <- plotCladeNum("growth temperature", cladeName = "Deinococcales")
 gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
 ggsave(
-    filename = "growth_temperature_Deinococcales_118964.png",
+    filename = "numeric_clades_plots/growth_temperature_Deinococcales.png",
     plot = gtPlot, width = 20, height = 15
 )
 
@@ -161,7 +161,7 @@ ggsave(
 opPlot <- plotCladeNum("optimal ph", cladeName = "Halobacteriales")
 opPlot <- facet_widths(opPlot, widths = c(4, 1))
 ggsave(
-    filename = "optimal_ph_Halobacteriales.png",
+    filename = "numeric_clades_plots/optimal_ph_Halobacteriales.png",
     plot = opPlot, width = 20, height = 15
 )
 
@@ -169,7 +169,7 @@ ggsave(
 cgPlot <- plotCladeNum("coding genes", cladeName = "Entomoplasmatales")
 cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
 ggsave(
-    filename = "codinge_genes_Entoplasmatales.png",
+    filename = "numeric_clades_plots/codinge_genes_Entoplasmatales.png",
     plot = cgPlot, width = 20, height = 15
 )
 
@@ -177,7 +177,7 @@ ggsave(
 gzPlot <- plotCladeNum("genome size", cladeName = "Rickettsiales")
 gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
 ggsave(
-    filename = "genome_size_Rickettsiales.png",
+    filename = "numeric_clades_plots/genome_size_Rickettsiales.png",
     plot = gzPlot, width = 20, height = 15
 )
 
@@ -185,7 +185,7 @@ ggsave(
 wPlot <- plotCladeNum("width", cladeName = "Desulfobacterales")
 wPlot <- facet_widths(wPlot, widths = c(4, 1))
 ggsave(
-    filename = "width_Desulfobacterales.png",
+    filename = "numeric_clades_plots/width_Desulfobacterales.png",
     plot = wPlot, width = 20, height = 15
 )
 
@@ -193,6 +193,6 @@ ggsave(
 lPlot <- plotCladeNum("length", cladeName = "Desulfobacterales")
 lPlot <- facet_widths(lPlot, widths = c(4, 1))
 ggsave(
-    filename = "length_Desulfobacterales.png",
+    filename = "numeric_clades_plots/length_Desulfobacterales.png",
     plot = lPlot, width = 20, height = 15
 )

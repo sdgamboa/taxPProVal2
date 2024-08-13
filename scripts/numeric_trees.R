@@ -106,6 +106,8 @@ subTrees <- map(selectIDs, \(x) {
 })
 
 
+# Numeric trees -----------------------------------------------------------
+
 ## There are five numeric attributes that we should check in detail
 ## 1. Coding genes.
 ## 2. Genome size.
@@ -153,7 +155,7 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
 gtPlot <- plotCladeNum("growth temperature", cladeName = "Deinococcales")
 gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/growth_temperature_Deinococcales.png",
+    filename = "numeric_clade_plots/growth_temperature_Deinococcales.png",
     plot = gtPlot, width = 20, height = 15
 )
 
@@ -161,7 +163,7 @@ ggsave(
 opPlot <- plotCladeNum("optimal ph", cladeName = "Halobacteriales")
 opPlot <- facet_widths(opPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/optimal_ph_Halobacteriales.png",
+    filename = "numeric_clade_plots/optimal_ph_Halobacteriales.png",
     plot = opPlot, width = 20, height = 15
 )
 
@@ -169,7 +171,7 @@ ggsave(
 cgPlot <- plotCladeNum("coding genes", cladeName = "Entomoplasmatales")
 cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/codinge_genes_Entoplasmatales.png",
+    filename = "numeric_clade_plots/codinge_genes_Entoplasmatales.png",
     plot = cgPlot, width = 20, height = 15
 )
 
@@ -177,7 +179,7 @@ ggsave(
 gzPlot <- plotCladeNum("genome size", cladeName = "Rickettsiales")
 gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/genome_size_Rickettsiales.png",
+    filename = "numeric_clade_plots/genome_size_Rickettsiales.png",
     plot = gzPlot, width = 20, height = 15
 )
 
@@ -185,7 +187,7 @@ ggsave(
 wPlot <- plotCladeNum("width", cladeName = "Desulfobacterales")
 wPlot <- facet_widths(wPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/width_Desulfobacterales.png",
+    filename = "numeric_clade_plots/width_Desulfobacterales.png",
     plot = wPlot, width = 20, height = 15
 )
 
@@ -193,6 +195,121 @@ ggsave(
 lPlot <- plotCladeNum("length", cladeName = "Desulfobacterales")
 lPlot <- facet_widths(lPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clades_plots/length_Desulfobacterales.png",
+    filename = "numeric_clade_plots/length_Desulfobacterales.png",
     plot = lPlot, width = 20, height = 15
+)
+
+# Discrete trees ----------------------------------------------------------
+
+plotCladeDis <- function(attrName, treeIndex = 1, cladeName = NULL) {
+    clade <- subTrees[[attrName]][[treeIndex]]
+    taxid <- names(subTrees[[attrName]])[[treeIndex]]
+    ann <- tipDataAnnotated[[attrName]] |>
+        filter(.data[["order_taxid"]] == .env[["taxid"]]) |>
+        rename(id = tip_label)
+    treeAnn <- ann |>
+        select(
+            id, taxid, Taxon_name, Rank, NCBI_ID, Evidence
+        )
+    barPlotAnn <- ann |>
+        select(
+            id, Score, Attribute_value
+        )
+    p <- ggtree(clade) %<+% treeAnn +
+        geom_tippoint(mapping = aes(color = Evidence)) +
+        geom_tiplab(mapping = aes(label = taxid), align = TRUE)
+    p2 <- ggtree::facet_plot(
+        p = p,
+        mapping = aes(x = Score, fill = Attribute_value),
+        data = barPlotAnn, geom = geom_col, panel = attrName,
+        orientation = 'y', width = 0.9
+    ) +
+        xlim_tree(0.2) +
+        theme_tree2()
+    p2
+}
+
+## Animal pathogen
+# [1] "animal pathogen"     "host-associated"     "motility"            "plant pathogenicity"
+# [5] "spore formation"     "aerophilicity"       "arrangement"         "biosafety level"
+# [9] "gram stain"          "shape"
+
+## Animal pathogen
+apPlot <- plotCladeDis("animal pathogen")
+apPlot <- facet_widths(apPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/animal_pathogen.png",
+    plot = gtPlot, width = 20, height = 15
+)
+
+## Host-associated
+haPlot <- plotCladeDis("host-associated")
+haPlot <- facet_widths(haPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/host_associated.png",
+    plot = haPlot, width = 20, height = 15
+)
+
+## motility
+moPlot <- plotCladeDis("motility")
+moPlot <- facet_widths(moPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/motility.png",
+    plot = moPlot, width = 20, height = 15
+)
+
+## plant plant pathogenicity
+ppPlot <- plotCladeDis("plant pathogenicity")
+ppPlot <- facet_widths(ppPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/plant_pathogenicity.png",
+    plot = ppPlot, width = 20, height = 15
+)
+
+## spore formation
+sfPlot <- plotCladeDis("spore formation")
+sfPlot <- facet_widths(sfPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/spore_formation.png",
+    plot = sfPlot, width = 20, height = 15
+)
+
+## aerophilicity
+aePlot <- plotCladeDis("aerophilicity")
+aePlot <- facet_widths(aePlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/aerophilicity.png",
+    plot = aePlot, width = 20, height = 15
+)
+
+## arrangement
+arPlot <- plotCladeDis("arrangement")
+arPlot <- facet_widths(arPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/arrangement.png",
+    plot = arPlot, width = 20, height = 15
+)
+
+## biosafety level
+blPlot <- plotCladeDis("biosafety level")
+blPlot <- facet_widths(blPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/biosafety_level.png",
+    plot = blPlot, width = 20, height = 15
+)
+
+## gram stain
+gsPlot <- plotCladeDis("gram stain")
+gsPlot <- facet_widths(gsPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/gram_stain.png",
+    plot = gsPlot, width = 20, height = 15
+)
+
+## shape
+sPlot <- plotCladeDis("shape")
+sPlot <- facet_widths(sPlot, widths = c(4, 1))
+ggsave(
+    filename = "discrete_clade_plots/shape.png",
+    plot = sPlot, width = 20, height = 15
 )

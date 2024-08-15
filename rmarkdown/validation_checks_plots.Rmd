@@ -430,6 +430,10 @@ x |>
     ) +
     scale_color_viridis_c(option = "C") +
     geom_text_repel(aes(label = Attribute)) +
+    labs(
+        x = "Number of tips", 
+        y = "Mean Matthe's Correlation Coefficient"
+    ) +
     theme_bw()
 ```
 

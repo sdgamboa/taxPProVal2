@@ -129,7 +129,7 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
     annSubset <- select(ann, id, attr = Attribute_value)
     annSubset # for the bar plots, a different dataset is needed
     p <- ggtree(clade) %<+% ann +
-        geom_tippoint(mapping = aes(color = Evidence)) +
+        geom_tippoint(mapping = aes(color = Evidence), size = 4) +
         geom_tiplab(mapping = aes(label = taxid), align = TRUE)
     p2 <- ggtree::facet_plot(
         p = p,
@@ -216,7 +216,7 @@ plotCladeDis <- function(attrName, treeIndex = 1, cladeName = NULL) {
             id, Score, Attribute_value
         )
     p <- ggtree(clade) %<+% treeAnn +
-        geom_tippoint(mapping = aes(color = Evidence)) +
+        geom_tippoint(mapping = aes(color = Evidence), size = 4) +
         geom_tiplab(mapping = aes(label = taxid), align = TRUE)
     p2 <- ggtree::facet_plot(
         p = p,

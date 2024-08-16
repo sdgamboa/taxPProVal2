@@ -60,6 +60,7 @@ attrBin <- c(
 )
 valDat <- valFname |>
     read_tsv(show_col_types = FALSE) |>
+    mutate_if(.predicate = is.character, .funs = tolower) |> 
     filter(rank == "all") |> 
     mutate(physiology = tolower(physiology)) # COGEM most be lower case
 valDatNum <- valDat |> 
@@ -365,7 +366,7 @@ x <- tipsMulI |>
         perTips = unique(ltp_bp)
     ) |> 
     ungroup() |> 
-    drop_na() |> 
+    # drop_na() |> 
     pivot_wider(
         names_from = "TF", values_from = c("nTF", "meanDist", "medianDist")
     ) |> 

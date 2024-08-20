@@ -152,50 +152,50 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
 }
 
 ## Growth temperature
-gtPlot <- plotCladeNum("growth temperature", cladeName = "Deinococcales")
+gtPlot <- plotCladeNum("growth temperature")
 gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/growth_temperature_Deinococcales.png",
+    filename = "numeric_clade_plots/growth_temperature.png",
     plot = gtPlot, width = 20, height = 15
 )
 
 ## optimal ph
-opPlot <- plotCladeNum("optimal ph", cladeName = "Halobacteriales")
+opPlot <- plotCladeNum("optimal ph")
 opPlot <- facet_widths(opPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/optimal_ph_Halobacteriales.png",
+    filename = "numeric_clade_plots/optimal_ph.png",
     plot = opPlot, width = 20, height = 15
 )
 
 ## coding genes
-cgPlot <- plotCladeNum("coding genes", cladeName = "Entomoplasmatales")
+cgPlot <- plotCladeNum("coding genes")
 cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/codinge_genes_Entoplasmatales.png",
+    filename = "numeric_clade_plots/codinge_genes.png",
     plot = cgPlot, width = 20, height = 15
 )
 
 ## genome size
-gzPlot <- plotCladeNum("genome size", cladeName = "Rickettsiales")
+gzPlot <- plotCladeNum("genome size")
 gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/genome_size_Rickettsiales.png",
+    filename = "numeric_clade_plots/genome_size.png",
     plot = gzPlot, width = 20, height = 15
 )
 
 ## width
-wPlot <- plotCladeNum("width", cladeName = "Desulfobacterales")
+wPlot <- plotCladeNum("width")
 wPlot <- facet_widths(wPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/width_Desulfobacterales.png",
+    filename = "numeric_clade_plots/width.png",
     plot = wPlot, width = 20, height = 15
 )
 
 ## length
-lPlot <- plotCladeNum("length", cladeName = "Desulfobacterales")
+lPlot <- plotCladeNum("length")
 lPlot <- facet_widths(lPlot, widths = c(4, 1))
 ggsave(
-    filename = "numeric_clade_plots/length_Desulfobacterales.png",
+    filename = "numeric_clade_plots/length.png",
     plot = lPlot, width = 20, height = 15
 )
 

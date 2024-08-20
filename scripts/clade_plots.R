@@ -313,3 +313,47 @@ ggsave(
     filename = "discrete_clade_plots/shape.png",
     plot = sPlot, width = 20, height = 15
 )
+
+
+# Roseburia - Animal Pathogen ---------------------------------------------
+## Lachnospirales        order 3085636
+
+## These are annotations for the genus Rosenbura
+## But these annotations could not be mapped to the LTP tree
+"301301" %in% tipData$taxid
+"166486" %in% tipData$taxid
+"360807" %in% tipData$taxid
+
+nodeName <- "186803"
+sub_tree <- getSubTr(nodeName)
+
+tipData |>
+    filter(genus_taxid == "841")
+
+tree_ann <- tipDataAnnotated[["animal pathogen"]] |>
+    filter(.data[["family_taxid"]] == nodeName) |>
+    rename(id = tip_label)
+tree_ann1 <- tree_ann |>
+    select(id, Evidence, taxid)
+
+tree_ann2 <- tree_ann |>
+    mutate(Attribute_value = as.character(Attribute_value)) |>
+    select(id, Attribute_value, Score)
+
+ggpt <- ggtree(sub_tree) %<+% tree_ann1 +
+    geom_tippoint(mapping = aes(color = Evidence), size = 4) +
+    geom_tiplab(mapping = aes(label = taxid), align = TRUE)
+ggpt2 <- ggtree::facet_plot(
+    p = ggpt,
+    mapping = aes(x = Score, fill = Attribute_value),
+    data = tree_ann2, geom = geom_col, panel = "Animal pathogen",
+    orientation = 'y', width = 0.9
+) +
+    xlim_tree(0.23) +
+    theme_tree2()
+
+ggpt3 <- facet_widths(ggpt2, widths = c(6, 1))
+ggsave(
+    filename = "discrete_clade_plots/animal_pathogen_roseburia.pdf",
+    plot = ggpt3, width = 20, height = 45
+)

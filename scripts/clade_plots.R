@@ -138,7 +138,7 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
         stat = "identity",
         orientation = 'y', width = 0.9
     ) +
-        xlim_tree(0.2) +
+        xlim_tree(0.23) +
         theme_tree2()
     if (is.null(cladeName)) {
         p2 <- p2 +
@@ -152,55 +152,114 @@ plotCladeNum <- function(attrName, treeIndex = 1, cladeName = NULL) {
 }
 
 ## Growth temperature
-gtPlot <- plotCladeNum("growth temperature")
-gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/growth_temperature.png",
-    plot = gtPlot, width = 20, height = 15
-)
+gtTaxNames <- names(subTrees[["growth temperature"]])
+for (i in seq_along(gtTaxNames)) {
+    gtPlot <- plotCladeNum("growth temperature", treeIndex = i)
+    gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
+    gtPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("growth_temperature_", gtTaxNames[i], ".png")
+    )
+    ggsave(filename = gtPlotName, plot = gtPlot, width = 20, height = 15)
+}
+# gtPlot <- plotCladeNum("growth temperature")
+# gtPlot <- facet_widths(gtPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/growth_temperature.png",
+#     plot = gtPlot, width = 20, height = 15
+# )
 
 ## optimal ph
-opPlot <- plotCladeNum("optimal ph")
-opPlot <- facet_widths(opPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/optimal_ph.png",
-    plot = opPlot, width = 20, height = 15
-)
+opTaxNames <- names(subTrees[["optimal ph"]])
+for (i in seq_along(opTaxNames)) {
+    opPlot <- plotCladeNum("optimal ph", treeIndex = i)
+    opPlot <- facet_widths(opPlot, widths = c(4, 1))
+    opPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("optimal_ph_", opTaxNames[i], ".png")
+    )
+    ggsave(filename = opPlotName, plot = opPlot, width = 20, height = 15)
+}
+# opPlot <- plotCladeNum("optimal ph")
+# opPlot <- facet_widths(opPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/optimal_ph.png",
+#     plot = opPlot, width = 20, height = 15
+# )
 
 ## coding genes
-cgPlot <- plotCladeNum("coding genes")
-cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/codinge_genes.png",
-    plot = cgPlot, width = 20, height = 15
-)
+cgTaxNames <- names(subTrees[["coding genes"]])
+for (i in seq_along(cgTaxNames)) {
+    cgPlot <- plotCladeNum("coding genes", treeIndex = i)
+    cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
+    cgPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("coding_genes_", cgTaxNames[i], ".png")
+    )
+    ggsave(filename = cgPlotName, plot = cgPlot, width = 20, height = 15)
+}
+# cgPlot <- plotCladeNum("coding genes")
+# cgPlot <- facet_widths(cgPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/codinge_genes.png",
+#     plot = cgPlot, width = 20, height = 15
+# )
 
 ## genome size
-gzPlot <- plotCladeNum("genome size")
-gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/genome_size.png",
-    plot = gzPlot, width = 20, height = 15
-)
+gzTaxNames <- names(subTrees[["genome size"]])
+for (i in seq_along(gzTaxNames)) {
+    gzPlot <- plotCladeNum("genome size", treeIndex = i)
+    gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
+    gzPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("genome_size_", gzTaxNames[i], ".png")
+    )
+    ggsave(filename = gzPlotName, plot = gzPlot, width = 20, height = 15)
+}
+# gzPlot <- plotCladeNum("genome size")
+# gzPlot <- facet_widths(gzPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/genome_size.png",
+#     plot = gzPlot, width = 20, height = 15
+# )
 
 ## width
-wPlot <- plotCladeNum("width")
-wPlot <- facet_widths(wPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/width.png",
-    plot = wPlot, width = 20, height = 15
-)
+wTaxNames <- names(subTrees[["width"]])
+for (i in seq_along(wTaxNames)) {
+    wPlot <- plotCladeNum("width", treeIndex = i)
+    wPlot <- facet_widths(wPlot, widths = c(4, 1))
+    wPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("width_", wTaxNames[i], ".png")
+    )
+    ggsave(filename = wPlotName, plot = wPlot, width = 20, height = 15)
+}
+# wPlot <- plotCladeNum("width")
+# wPlot <- facet_widths(wPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/width.png",
+#     plot = wPlot, width = 20, height = 15
+# )
 
 ## length
-lPlot <- plotCladeNum("length")
-lPlot <- facet_widths(lPlot, widths = c(4, 1))
-ggsave(
-    filename = "numeric_clade_plots/length.png",
-    plot = lPlot, width = 20, height = 15
-)
+lTaxNames <- names(subTrees[["length"]])
+for (i in seq_along(lTaxNames)) {
+    lPlot <- plotCladeNum("length", treeIndex = i)
+    lPlot <- facet_widths(lPlot, widths = c(4, 1))
+    lPlotName <- file.path(
+        "numeric_clade_plots",
+        paste0("length_", lTaxNames[i], ".png")
+    )
+    ggsave(filename = lPlotName, plot = lPlot, width = 20, height = 15)
+}
+# lPlot <- plotCladeNum("length")
+# lPlot <- facet_widths(lPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "numeric_clade_plots/length.png",
+#     plot = lPlot, width = 20, height = 15
+# )
 
 # Discrete trees ----------------------------------------------------------
-
 plotCladeDis <- function(attrName, treeIndex = 1, cladeName = NULL) {
     clade <- subTrees[[attrName]][[treeIndex]]
     taxid <- names(subTrees[[attrName]])[[treeIndex]]
@@ -224,7 +283,7 @@ plotCladeDis <- function(attrName, treeIndex = 1, cladeName = NULL) {
         data = barPlotAnn, geom = geom_col, panel = attrName,
         orientation = 'y', width = 0.9
     ) +
-        xlim_tree(0.2) +
+        xlim_tree(0.23) +
         theme_tree2()
     p2
 }
@@ -235,91 +294,189 @@ plotCladeDis <- function(attrName, treeIndex = 1, cladeName = NULL) {
 # [9] "gram stain"          "shape"
 
 ## Animal pathogen
-apPlot <- plotCladeDis("animal pathogen")
-apPlot <- facet_widths(apPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/animal_pathogen.png",
-    plot = apPlot, width = 20, height = 15
-)
+apTaxNames <- names(subTrees[["animal pathogen"]])
+for (i in seq_along(apTaxNames)) {
+    apPlot <- plotCladeDis("animal pathogen", treeIndex = i)
+    apPlot <- facet_widths(apPlot, widths = c(4, 1))
+    apPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("animal_pathogen_", apTaxNames[i], ".png")
+    )
+    ggsave(filename = apPlotName, plot = apPlot, width = 20, height = 15)
+}
+# apPlot <- plotCladeDis("animal pathogen")
+# apPlot <- facet_widths(apPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/animal_pathogen.png",
+#     plot = apPlot, width = 20, height = 15
+# )
 
 ## Host-associated
-haPlot <- plotCladeDis("host-associated")
-haPlot <- facet_widths(haPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/host_associated.png",
-    plot = haPlot, width = 20, height = 15
-)
+haTaxNames <- names(subTrees[["host-associated"]])
+for (i in seq_along(haTaxNames)) {
+    haPlot <- plotCladeDis("host-associated", treeIndex = i)
+    haPlot <- facet_widths(haPlot, widths = c(4, 1))
+    haPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("host_associated_", haTaxNames[i], ".png")
+    )
+    ggsave(filename = haPlotName, plot = haPlot, width = 20, height = 15)
+}
+# haPlot <- plotCladeDis("host-associated")
+# haPlot <- facet_widths(haPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/host_associated.png",
+#     plot = haPlot, width = 20, height = 15
+# )
 
 ## motility
-moPlot <- plotCladeDis("motility")
-moPlot <- facet_widths(moPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/motility.png",
-    plot = moPlot, width = 20, height = 15
-)
+moTaxNames <- names(subTrees[["motility"]])
+for (i in seq_along(moTaxNames)) {
+    moPlot <- plotCladeDis("motility", treeIndex = i)
+    moPlot <- facet_widths(moPlot, widths = c(4, 1))
+    moPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("motility_", moTaxNames[i], ".png")
+    )
+    ggsave(filename = moPlotName, plot = moPlot, width = 20, height = 15)
+}
+# moPlot <- plotCladeDis("motility")
+# moPlot <- facet_widths(moPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/motility.png",
+#     plot = moPlot, width = 20, height = 15
+# )
 
 ## plant plant pathogenicity
-ppPlot <- plotCladeDis("plant pathogenicity")
-ppPlot <- facet_widths(ppPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/plant_pathogenicity.png",
-    plot = ppPlot, width = 20, height = 15
-)
+ppTaxNames <- names(subTrees[["plant pathogenicity"]])
+for (i in seq_along(ppTaxNames)) {
+    ppPlot <- plotCladeDis("plant pathogenicity", treeIndex = i)
+    ppPlot <- facet_widths(ppPlot, widths = c(4, 1))
+    ppPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("plant_pathogenicity_", ppTaxNames[i], ".png")
+    )
+    ggsave(filename = ppPlotName, plot = ppPlot, width = 20, height = 15)
+}
+# ppPlot <- plotCladeDis("plant pathogenicity")
+# ppPlot <- facet_widths(ppPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/plant_pathogenicity.png",
+#     plot = ppPlot, width = 20, height = 15
+# )
 
 ## spore formation
-sfPlot <- plotCladeDis("spore formation")
-sfPlot <- facet_widths(sfPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/spore_formation.png",
-    plot = sfPlot, width = 20, height = 15
-)
+sfTaxNames <- names(subTrees[["spore formation"]])
+for (i in seq_along(sfTaxNames)) {
+    sfPlot <- plotCladeDis("spore formation", treeIndex = i)
+    sfPlot <- facet_widths(sfPlot, widths = c(4, 1))
+    sfPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("spore_formation_", sfTaxNames[i], ".png")
+    )
+    ggsave(filename = sfPlotName, plot = sfPlot, width = 20, height = 15)
+}
+# sfPlot <- plotCladeDis("spore formation")
+# sfPlot <- facet_widths(sfPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/spore_formation.png",
+#     plot = sfPlot, width = 20, height = 15
+# )
 
 ## aerophilicity
-aePlot <- plotCladeDis("aerophilicity")
-aePlot <- facet_widths(aePlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/aerophilicity.png",
-    plot = aePlot, width = 20, height = 15
-)
+aeTaxNames <- names(subTrees[["aerophilicity"]])
+for (i in seq_along(aeTaxNames)) {
+    aePlot <- plotCladeDis("aerophilicity", treeIndex = i)
+    aePlot <- facet_widths(aePlot, widths = c(4, 1))
+    aePlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("aerophilicity_", aeTaxNames[i], ".png")
+    )
+    ggsave(filename = aePlotName, plot = aePlot, width = 20, height = 15)
+}
+# aePlot <- plotCladeDis("aerophilicity")
+# aePlot <- facet_widths(aePlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/aerophilicity.png",
+#     plot = aePlot, width = 20, height = 15
+# )
 
 ## arrangement
-arPlot <- plotCladeDis("arrangement")
-arPlot <- facet_widths(arPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/arrangement.png",
-    plot = arPlot, width = 20, height = 15
-)
+arTaxNames <- names(subTrees[["arrangement"]])
+for (i in seq_along(arTaxNames)) {
+    arPlot <- plotCladeDis("arrangement", treeIndex = i)
+    arPlot <- facet_widths(arPlot, widths = c(4, 1))
+    arPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("arrangement_", arTaxNames[i], ".png")
+    )
+    ggsave(filename = arPlotName, plot = arPlot, width = 20, height = 15)
+}
+# arPlot <- plotCladeDis("arrangement")
+# arPlot <- facet_widths(arPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/arrangement.png",
+#     plot = arPlot, width = 20, height = 15
+# )
 
 ## biosafety level
-blPlot <- plotCladeDis("biosafety level")
-blPlot <- facet_widths(blPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/biosafety_level.png",
-    plot = blPlot, width = 20, height = 15
-)
+blTaxNames <- names(subTrees[["biosafety level"]])
+for (i in seq_along(blTaxNames)) {
+    blPlot <- plotCladeDis("biosafety level", treeIndex = i)
+    blPlot <- facet_widths(blPlot, widths = c(4, 1))
+    blPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("biosafety_level_", blTaxNames[i], ".png")
+    )
+    ggsave(filename = blPlotName, plot = blPlot, width = 20, height = 15)
+}
+# blPlot <- plotCladeDis("biosafety level")
+# blPlot <- facet_widths(blPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/biosafety_level.png",
+#     plot = blPlot, width = 20, height = 15
+# )
 
 ## gram stain
-gsPlot <- plotCladeDis("gram stain")
-gsPlot <- facet_widths(gsPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/gram_stain.png",
-    plot = gsPlot, width = 20, height = 15
-)
+gsTaxNames <- names(subTrees[["gram stain"]])
+for (i in seq_along(gsTaxNames)) {
+    gsPlot <- plotCladeDis("gram stain", treeIndex = i)
+    gsPlot <- facet_widths(gsPlot, widths = c(4, 1))
+    gsPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("gram_stain_", gsTaxNames[i], ".png")
+    )
+    ggsave(filename = gsPlotName, plot = gsPlot, width = 20, height = 15)
+}
+# gsPlot <- plotCladeDis("gram stain")
+# gsPlot <- facet_widths(gsPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/gram_stain.png",
+#     plot = gsPlot, width = 20, height = 15
+# )
 
 ## shape
-sPlot <- plotCladeDis("shape")
-sPlot <- facet_widths(sPlot, widths = c(4, 1))
-ggsave(
-    filename = "discrete_clade_plots/shape.png",
-    plot = sPlot, width = 20, height = 15
-)
-
+sTaxNames <- names(subTrees[["shape"]])
+for (i in seq_along(sTaxNames)) {
+    sPlot <- plotCladeDis("shape", treeIndex = i)
+    sPlot <- facet_widths(sPlot, widths = c(4, 1))
+    sPlotName <- file.path(
+        "discrete_clade_plots",
+        paste0("shape_", sTaxNames[i], ".png")
+    )
+    ggsave(filename = sPlotName, plot = sPlot, width = 20, height = 15)
+}
+# sPlot <- plotCladeDis("shape")
+# sPlot <- facet_widths(sPlot, widths = c(4, 1))
+# ggsave(
+#     filename = "discrete_clade_plots/shape.png",
+#     plot = sPlot, width = 20, height = 15
+# )
 
 # Roseburia - Animal Pathogen ---------------------------------------------
-## Lachnospirales        order 3085636
-
-## These are annotations for the genus Rosenbura
-## But these annotations could not be mapped to the LTP tree
+## These are a few annotations for species in the genus Rosenburia.
+## However, these annotations could not be mapped to the LTP tree.
+## So these annotations were not used for the ASR.
 "301301" %in% tipData$taxid
 "166486" %in% tipData$taxid
 "360807" %in% tipData$taxid

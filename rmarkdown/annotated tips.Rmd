@@ -1,0 +1,159 @@
+---
+title: "Tips annotated with growth temperature and coding genes/genome size"
+date: "2024-08-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    message = FALSE
+)
+```
+
+```{r}
+library(bugphyzz)
+library(purrr)
+library(dplyr)
+library(taxPPro)
+library(ggplot2)
+physNames <- c(
+    "growth temperature", "coding genes", "genome size"
+)
+bp <- importBugphyzz(v = 0)
+phys <- physiologies(physNames)
+```
+
+```{r}
+bpSub <- bp[physNames] |> 
+    map(~ mutate(.x, NCBI_ID = as.character(NCBI_ID))) |> 
+    map(~ filter(.x, Evidence != "asr")) |> 
+    map(as_tibble)
+ps <- phys |> 
+    map(~ mutate(.x, NCBI_ID = as.character(NCBI_ID))) |> 
+    map(as_tibble)
+```
+
+```{r}
+ltp <- ltp()
+tipData <- as_tibble(ltp$tip_data)
+```
+
+There are 23,501 tips in the tree, including genera inserted with zero-length
+branches:
+
+```{r}
+nrow(tipData)
+```
+
+Most of the tips correspond to species but there are some strains as well:
+
+```{r}
+tipData |> 
+    count(Rank) |> 
+    arrange(-n)
+```
+
+All tip labels in the LTP tree have names indicating an accession number,
+e.g. *Salmonella\_enterica\_subsp.\_enterica-\_-AE006468--\_LT2\_T*.
+
+I got he taxids from that accession number, e.g., *99287*.
+
+These taxids were used for mapping the annotations in bugphyzz to the tips
+in the LTP tree.
+
+```{r}
+tipData |> 
+    filter(!grepl("g__", tip_label)) |> 
+    select(tip_label, accession, taxid) |> 
+    glimpse(width = 80)
+```
+
+If we look at the number of annotations per dataset before any propagation
+is done,
+we see that we only have less than 5,000 annotations for genome size and
+coding genes. On the the other hand, we have more than 50,000 annotations
+for growth temperature:
+
+```{r}
+map(phys, nrow)
+```
+
+When the annotations are mapped to the taxids in the tree, the percentage of
+annotated tips is quite similar:
+
+```{r}
+map(phys, ~ {
+    mean(tipData$taxid %in% .x$NCBI_ID) * 100
+})
+```
+
+Even when there are so many annotations for growth temperature
+(mostly strains from BacDive), they cannot be mapped to the LTP tree without
+a taxid:
+
+```{r}
+phys |> 
+    map(~ {
+        .x |> 
+            mutate(hasid = case_when(
+                is.na(NCBI_ID) ~ "without id",
+                is.integer(as.integer(NCBI_ID)) ~ "with id",
+                TRUE ~ NA
+            )) |> 
+            count(Attribute_source, hasid)
+    }) |> 
+    bind_rows(.id = "physiology") |> 
+    ggplot(aes(physiology, n)) +
+    geom_col(aes(fill = Attribute_source)) +
+    facet_wrap(~ hasid, nrow = 1) +
+    theme_bw() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+```
+
+So, after getting a consensus annotation for the species of the strains without 
+taxid, now a good number of species can be mapped to the tree:
+
+```{r}
+map(bpSub, ~ {
+    mean(tipData$taxid %in% .x$NCBI_ID) * 100
+})
+
+```
+
+We can see that the number of taxa with ID now is much greater for
+growth temperature:
+
+```{r}
+bpSub |> 
+    map(~ {
+        .x |> 
+            mutate(hasid = case_when(
+                is.na(NCBI_ID) ~ "without id",
+                is.integer(as.integer(NCBI_ID)) ~ "with id",
+                TRUE ~ NA
+            )) |> 
+            mutate(
+                Attribute_source = ifelse(
+                    is.na(Attribute_source), "tax (IBD)", Attribute_source
+                )
+            ) |> 
+            count(Attribute_source, hasid)
+    }) |> 
+    bind_rows(.id = "physiology") |> 
+    ggplot(aes(physiology, n)) +
+    geom_col(aes(fill = Attribute_source)) +
+    facet_wrap(~ hasid, nrow = 1) +
+    theme_bw() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+```
+
+Session information:
+
+```{r}
+sessioninfo::session_info()
+```
+

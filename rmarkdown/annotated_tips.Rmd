@@ -10,7 +10,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r}
+```{r, message=FALSE}
 library(bugphyzz)
 library(purrr)
 library(dplyr)

@@ -310,6 +310,18 @@ tipsNum |>
 
 ## EDA discrete values (Multisate - Global)
 
+
+
+```{r}
+tipsMulG |> 
+    ggplot(aes(Attribute, distance)) +
+    geom_boxplot(aes(fill = TF)) +
+    theme_bw() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+```
+
 ```{r}
 sumMulG <- tipsMulG |> 
     group_by(Attribute, TF) |> 
@@ -400,6 +412,16 @@ x |>
 ## EDA - Binary
 
 ```{r}
+tipsBin |> 
+    ggplot(aes(Attribute, distance)) +
+    geom_boxplot(aes(fill = TF)) +
+    theme_bw() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+```
+
+```{r}
 x <- tipsBin |> 
     group_by(Attribute, TF) |> 
     summarise(
@@ -440,9 +462,6 @@ x |>
 
 ## Session information
 
-
 ```{r}
 sessioninfo::session_info()
 ```
-
-

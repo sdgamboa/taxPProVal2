@@ -20,6 +20,7 @@ library(ggrepel)
 library(forcats)
 library(ape)
 library(ggtree)
+library(ggpubr)
 source("scripts/fun.R")
 ```
 
@@ -313,14 +314,27 @@ tipsNum |>
 
 
 ```{r}
-tipsMulG |> 
+p1 <- tipsMulG |> 
+    mutate(
+        TF = case_when(
+            TF == TRUE ~ "Matching annotations",
+            TF == FALSE ~ "Mismatching annotations"
+        )
+    ) |> 
     ggplot(aes(Attribute, distance)) +
     geom_boxplot(aes(fill = TF)) +
+    labs(
+        y = "Patristic distance"
+    ) +
     theme_bw() +
     theme(
-        axis.text.x = element_text(angle = 45, hjust = 1)
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",
+        legend.title = element_blank()
     )
+p1
 ```
+
 
 ```{r}
 sumMulG <- tipsMulG |> 
@@ -340,6 +354,53 @@ sumMulG <- tipsMulG |>
     mutate(TFrat = nTF_TRUE / nTF_FALSE) |> 
     mutate(TFratDist = meanDist_TRUE / meanDist_FALSE) |> 
     mutate(TFratDistMed = medianDist_TRUE / medianDist_FALSE)
+```
+
+```{r}
+p2 <- sumMulG |> 
+    pivot_longer(
+        names_to = "TF", values_to = "n" , cols = c(nTF_FALSE, nTF_TRUE)
+    ) |> 
+    mutate(
+        TF = case_when(
+            TF == "nTF_TRUE" ~ "Matching annotations",
+            TF == "nTF_FALSE" ~ "Mismatching annotations"
+        )
+    ) |> 
+    ggplot(aes(Attribute, n)) +
+    geom_col(aes(fill = TF), position = "dodge") +
+    scale_y_continuous(
+        labels = \(x) format(x, big.mark = ",")
+    ) +
+    labs(
+        y = "Number of node pairs" 
+    ) +
+    theme_bw() +
+    # facet_wrap(~ Attribute, scales = "free") +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.title = element_blank(),
+        legend.position = "bottom"
+    )
+p2
+```
+
+
+
+
+
+
+
+```{r, fig.width=9, fig.height=5}
+combined_plot <- ggarrange(
+    plotlist = list(p1, p2),
+    labels = c("A", "B")
+)
+comp <- annotate_figure(
+    combined_plot,
+    top = "Analysis of closest node pairs with source annotations"
+)
+comp
 ```
 
 ```{r}
